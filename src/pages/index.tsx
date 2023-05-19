@@ -1,118 +1,280 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import React, { useRef, useState } from "react";
 
-const inter = Inter({ subsets: ['latin'] })
+import { useEventListener, useHuddle01 } from "@huddle01/react";
+import { Audio, Video } from "@huddle01/react/components";
 
-export default function Home() {
+import {
+  useAudio,
+  useLobby,
+  useMeetingMachine,
+  usePeers,
+  useRoom,
+  useVideo,
+  useRecording,
+} from "@huddle01/react/hooks";
+
+import { useDisplayName } from "@huddle01/react/app-utils";
+import Button from "@/components/Button";
+
+const App = () => {
+  // refs
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const { state, send } = useMeetingMachine();
+
+  const [roomId, setRoomId] = useState("");
+  const [displayNameText, setDisplayNameText] = useState("Guest");
+  const [projectId, setProjectId] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+
+  const { initialize } = useHuddle01();
+  const { joinLobby } = useLobby();
+  const {
+    fetchAudioStream,
+    produceAudio,
+    stopAudioStream,
+    stopProducingAudio,
+    stream: micStream,
+  } = useAudio();
+  const {
+    fetchVideoStream,
+    produceVideo,
+    stopVideoStream,
+    stopProducingVideo,
+    stream: camStream,
+  } = useVideo();
+  const { joinRoom, leaveRoom } = useRoom();
+
+  // Event Listner
+  useEventListener("lobby:cam-on", () => {
+    if (camStream && videoRef.current) videoRef.current.srcObject = camStream;
+  });
+
+  const { peers } = usePeers();
+
+  const {
+    startRecording,
+    stopRecording,
+    error,
+    data: recordingData,
+  } = useRecording();
+
+  const { setDisplayName, error: displayNameError } = useDisplayName();
+
+  useEventListener("room:joined", () => {
+    console.log("room:joined");
+  });
+  useEventListener("lobby:joined", () => {
+    console.log("lobby:joined");
+  });
+
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="grid grid-cols-2">
+      <div>
+        <h1 className="text-6xl font-bold">Lumos Example App</h1>
+
+        {/* <h2 className="text-2xl">Room State</h2>
+        <h3 className="break-words">{JSON.stringify(state.value)}</h3>
+
+        <h2 className="text-2xl">Me Id</h2>
+        <div className="break-words">
+          {JSON.stringify(state.context.peerId)}
+        </div>
+        <h2 className="text-2xl">DisplayName</h2>
+        <div className="break-words">
+          {JSON.stringify(state.context.displayName)}
+        </div>
+        <h2 className="text-2xl">Recording Data</h2>
+        <div className="break-words">{JSON.stringify(recordingData)}</div>
+
+        <h2 className="text-2xl">Error</h2>
+        <div className="break-words text-red-500">
+          {JSON.stringify(state.context.error)}
+        </div>
+        <h2 className="text-2xl">Peers</h2>
+        <div className="break-words">{JSON.stringify(peers)}</div>
+        <h2 className="text-2xl">Consumers</h2>
+        <div className="break-words">
+          {JSON.stringify(state.context.consumers)}
+        </div> */}
+
+        <h2 className="text-3xl text-blue-500 font-extrabold">Idle</h2>
+        <input
+          type="text"
+          placeholder="Your Project Id"
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
+          className="border-2 border-gray-300 bg-white h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none mr-2"
+        />
+        <Button
+          disabled={!initialize.isCallable}
+          onClick={() => {
+            initialize(projectId);
+          }}
+        >
+          INIT
+        </Button>
+
+        <br />
+        <br />
+        <h2 className="text-3xl text-red-500 font-extrabold">Initialized</h2>
+        <input
+          type="text"
+          placeholder="Your Room Id"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+          className="border-2 border-gray-300 bg-white h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none mr-2"
+        />
+        <input
+          type="text"
+          placeholder="Your Access Token (optional)"
+          value={accessToken}
+          onChange={(e) => setAccessToken(e.target.value)}
+          className="border-2 border-gray-300 bg-white h-10 px-5 pr-16 rpnounded-lg text-sm focus:outline-none mr-2"
+        />
+        <Button
+          disabled={!joinLobby.isCallable}
+          onClick={() => {
+            if (accessToken) joinLobby(roomId, accessToken);
+            else joinLobby(roomId);
+          }}
+        >
+          JOIN_LOBBY
+        </Button>
+        <br />
+        <br />
+        <h2 className="text-3xl text-yellow-500 font-extrabold">Lobby</h2>
+        <div className="flex gap-4 flex-wrap">
+          <input
+            type="text"
+            placeholder="Your Room Id"
+            value={displayNameText}
+            onChange={(e) => setDisplayNameText(e.target.value)}
+            className="border-2 border-gray-300 bg-white h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none mr-2"
+          />
+          <Button
+            disabled={!setDisplayName.isCallable}
+            onClick={() => {
+              setDisplayName(displayNameText);
+            }}
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            {`SET_DISPLAY_NAME error: ${displayNameError}`}
+          </Button>
+          <Button
+            disabled={!fetchVideoStream.isCallable}
+            onClick={fetchVideoStream}
+          >
+            FETCH_VIDEO_STREAM
+          </Button>
+
+          <Button
+            disabled={!fetchAudioStream.isCallable}
+            onClick={fetchAudioStream}
+          >
+            FETCH_AUDIO_STREAM
+          </Button>
+
+          <Button disabled={!joinRoom.isCallable} onClick={joinRoom}>
+            JOIN_ROOM
+          </Button>
+
+          <Button
+            disabled={!state.matches("Initialized.JoinedLobby")}
+            onClick={() => send("LEAVE_LOBBY")}
+          >
+            LEAVE_LOBBY
+          </Button>
+
+          <Button
+            disabled={!stopVideoStream.isCallable}
+            onClick={stopVideoStream}
+          >
+            STOP_VIDEO_STREAM
+          </Button>
+          <Button
+            disabled={!stopAudioStream.isCallable}
+            onClick={stopAudioStream}
+          >
+            STOP_AUDIO_STREAM
+          </Button>
+        </div>
+        <br />
+        <h2 className="text-3xl text-green-600 font-extrabold">Room</h2>
+        <div className="flex gap-4 flex-wrap">
+          <Button
+            disabled={!produceAudio.isCallable}
+            onClick={() => produceAudio(micStream)}
+          >
+            PRODUCE_MIC
+          </Button>
+
+          <Button
+            disabled={!produceVideo.isCallable}
+            onClick={() => produceVideo(camStream)}
+          >
+            PRODUCE_CAM
+          </Button>
+
+          <Button
+            disabled={!stopProducingAudio.isCallable}
+            onClick={() => stopProducingAudio()}
+          >
+            STOP_PRODUCING_MIC
+          </Button>
+
+          <Button
+            disabled={!stopProducingVideo.isCallable}
+            onClick={() => stopProducingVideo()}
+          >
+            STOP_PRODUCING_CAM
+          </Button>
+
+          <Button
+            disabled={!startRecording.isCallable}
+            onClick={() =>
+              startRecording(`${window.location.href}rec/${roomId}`)
+            }
+          >
+            {`START_RECORDING error: ${error}`}
+          </Button>
+          <Button disabled={!stopRecording.isCallable} onClick={stopRecording}>
+            STOP_RECORDING
+          </Button>
+
+          <Button disabled={!leaveRoom.isCallable} onClick={leaveRoom}>
+            LEAVE_ROOM
+          </Button>
+        </div>
+
+        {/* Uncomment to see the Xstate Inspector */}
+        {/* <Inspect /> */}
+      </div>
+      <div>
+        Me Video:
+        <video ref={videoRef} autoPlay muted></video>
+        <div className="grid grid-cols-4">
+          {Object.values(peers)
+            .filter((peer) => peer.cam)
+            .map((peer) => (
+              <>
+                role: {peer.role}
+                <Video
+                  key={peer.peerId}
+                  peerId={peer.peerId}
+                  track={peer.cam}
+                  debug
+                />
+              </>
+            ))}
+          {Object.values(peers)
+            .filter((peer) => peer.mic)
+            .map((peer) => (
+              <Audio key={peer.peerId} peerId={peer.peerId} track={peer.mic} />
+            ))}
         </div>
       </div>
+    </div>
+  );
+};
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
-}
+export default App;
