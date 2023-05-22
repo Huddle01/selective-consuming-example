@@ -57,8 +57,6 @@ const Init: React.FC<Props> = ({ setActiveStage }) => {
     setHuddleStates({ ...huddleStates, [name]: value });
   };
 
-  
-
   useEffect(() => {
     if (projectId) {
       initialize(projectId);
@@ -74,7 +72,7 @@ const Init: React.FC<Props> = ({ setActiveStage }) => {
         <div className="w-full flex items-center justify-center">
           {!camStream ? (
             <div className="border border-black rounded-lg w-3/4 h-96 mb-2 flex items-center justify-center bg-black text-white">
-              Test
+              Stream
             </div>
           ) : (
             <Stream />
