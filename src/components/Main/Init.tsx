@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "../Button";
 import Stream from "../Stream";
 import { useDisplayName } from "@huddle01/react/app-utils";
@@ -6,6 +6,7 @@ import {
   useAudio,
   useHuddle01,
   useLobby,
+  useMeetingMachine,
   useRoom,
   useVideo,
 } from "@huddle01/react/hooks";
@@ -41,6 +42,8 @@ const Init: React.FC<Props> = ({ setActiveStage }) => {
   const { joinLobby, leaveLobby } = useLobby();
   const { fetchAudioStream, stopAudioStream } = useAudio();
   const { setDisplayName } = useDisplayName();
+
+  useMeetingMachine();
   const {
     fetchVideoStream,
     stopVideoStream,
@@ -53,6 +56,14 @@ const Init: React.FC<Props> = ({ setActiveStage }) => {
     const { name, value } = e.target;
     setHuddleStates({ ...huddleStates, [name]: value });
   };
+
+  
+
+  useEffect(() => {
+    if (projectId) {
+      initialize(projectId);
+    }
+  }, [projectId]);
 
   return (
     <div className="p-4 h-screen relative">
@@ -82,12 +93,6 @@ const Init: React.FC<Props> = ({ setActiveStage }) => {
                   value={projectId}
                   onChange={handleOnChange}
                 />
-                <Button
-                  disabled={!initialize.isCallable}
-                  onClick={() => initialize(projectId)}
-                >
-                  INIT
-                </Button>
               </div>
               <div className="flex items-center w-full flex-1">
                 <Input

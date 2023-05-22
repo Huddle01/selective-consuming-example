@@ -1,5 +1,10 @@
 import Button from "@/components/Button";
-import { useAudio, usePeers, useVideo } from "@huddle01/react/hooks";
+import {
+  useAudio,
+  useMeetingMachine,
+  usePeers,
+  useVideo,
+} from "@huddle01/react/hooks";
 import { Audio, Video } from "@huddle01/react/components";
 import React, { useEffect, useRef } from "react";
 
@@ -7,6 +12,8 @@ const RoomPage = () => {
   const videoRef = useRef<null | HTMLVideoElement>(null);
   const { stream, produceVideo, stopProducingVideo, isLoading } = useVideo();
   const { stream: audioStream, produceAudio, stopProducingAudio } = useAudio();
+
+  const { state } = useMeetingMachine();
 
   const { peers, peerIds } = usePeers();
 
@@ -29,6 +36,7 @@ const RoomPage = () => {
         )}
 
         <div className="grid grid-cols-4 gap-2">
+          {JSON.stringify(state.value)}
           <Button
             disabled={!produceVideo.isCallable}
             onClick={() => produceVideo(stream)}
