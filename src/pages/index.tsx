@@ -62,7 +62,7 @@ const App = () => {
     if (camStream && videoRef.current) videoRef.current.srcObject = camStream;
   });
 
-  const { peers } = usePeers();
+  const { peers, peerIds } = usePeers();
 
   const { setDisplayName, error: displayNameError } = useDisplayName();
 
@@ -86,8 +86,8 @@ const App = () => {
   }, [initialize, projectId]);
 
   return (
-    <div className="grid grid-cols-2 min-h-screen">
-      <div>
+    <div className="grid grid-cols-2 min-h-screen p-4">
+      <div className="">
         <h1 className="text-6xl font-bold">Lumos Example App</h1>
 
         <Input
@@ -98,7 +98,7 @@ const App = () => {
         />
 
         <br />
-        <br />
+
         <h2 className="text-3xl text-red-500 font-extrabold">Initialized</h2>
         <div className="flex flex-col w-1/2 gap-2">
           <div className="flex items-center">
@@ -216,14 +216,43 @@ const App = () => {
             LEAVE_ROOM
           </Button>
         </div>
-
-        {/* <Inspect /> */}
       </div>
+
       <div>
-        Me Video:
-        <video ref={videoRef} autoPlay muted className="w-96" />
-        <div className="grid grid-cols-4">
-          <div className="flex flex-col-reverse">
+        <div className="flex gap-2">
+          <div>
+            Me Video:
+            <video ref={videoRef} muted autoPlay />
+          </div>
+          <div className="w-full">
+            <div>Checkbox</div>
+            <div className="border border-black p-2 rounded-md h-fit">
+              {peerIds.map((peerId) => {
+                const peer = peers[peerId];
+
+                return (
+                  <div key={peer.peerId} className="flex items-center gap-4">
+                    <span>checkbox</span>
+                    <span>{peer.role}</span>
+                  </div>
+                );
+              })}
+              <div className="flex items-center gap-2">
+                <Button disabled onClick={() => alert("todo")}>
+                  Produce Audio
+                </Button>
+
+                <Button disabled onClick={() => alert("todo")}>
+                  Produce Video
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div>Peers:</div>
+          <div className="grid grid-cols-4 gap-2 mt-2">
             {Object.values(peers)
               .filter((peer) => peer.cam)
               .map((peer) => (
@@ -246,6 +275,9 @@ const App = () => {
                   track={peer.mic}
                 />
               ))}
+            <Button disabled onClick={() => alert("todo")}>
+              Consume Audio
+            </Button>
           </div>
         </div>
       </div>
