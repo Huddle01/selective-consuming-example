@@ -225,34 +225,48 @@ const App = () => {
             <video ref={videoRef} muted autoPlay />
           </div>
           <div className="w-full">
-            <div>Checkbox</div>
+            <div>Enable Produce</div>
             <div className="border border-black p-2 rounded-md h-fit">
               {peerIds.map((peerId) => {
                 const peer = peers[peerId];
 
                 return (
                   <div key={peer.peerId} className="flex items-center gap-4">
-                    <span>checkbox</span>
+                    <span>
+                      <label>
+                        <input
+                          type="checkbox"
+                          value={`${peer.peerId} video`}
+                          onChange={() => {
+                            /* produce video */
+                          }}
+                        />
+                        Video
+                      </label>
+                    </span>
+                    <span>
+                      <label>
+                        <input
+                          type="checkbox"
+                          value={`${peer.peerId} audio`}
+                          onChange={() => {
+                            /* produce audio */
+                          }}
+                        />
+                        Audio
+                      </label>
+                    </span>
                     <span>{peer.role}</span>
                   </div>
                 );
               })}
-              <div className="flex items-center gap-2">
-                <Button disabled onClick={() => alert("todo")}>
-                  Produce Audio
-                </Button>
-
-                <Button disabled onClick={() => alert("todo")}>
-                  Produce Video
-                </Button>
-              </div>
             </div>
           </div>
         </div>
 
         <div className="mt-4">
           <div>Peers:</div>
-          <div className="grid grid-cols-4 gap-2 mt-2">
+          <div className="grid grid-cols-3 gap-2 mt-2">
             {Object.values(peers)
               .filter((peer) => peer.cam)
               .map((peer) => (
@@ -264,6 +278,31 @@ const App = () => {
                     track={peer.cam}
                     debug
                   />
+                  <div>
+                  <label>
+                    <input
+                      type="checkbox"
+                      value={`${peer.peerId} video`}
+                      className="mr-2"
+                      onChange={() => {
+                        /* consume video */
+                      }}
+                    />
+                    Consume Video
+                  </label>
+                  <br/>
+                  <label>
+                    <input
+                      type="checkbox"
+                      value={`${peer.peerId} audio`}
+                      className="mr-2"
+                      onChange={() => {
+                        /* consume audio */
+                      }}
+                    />
+                    Consume Audio
+                  </label>
+                  </div>
                 </>
               ))}
             {Object.values(peers)
@@ -275,9 +314,6 @@ const App = () => {
                   track={peer.mic}
                 />
               ))}
-            <Button disabled onClick={() => alert("todo")}>
-              Consume Audio
-            </Button>
           </div>
         </div>
       </div>
