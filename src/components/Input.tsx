@@ -17,11 +17,12 @@ const Input: React.FC<Props> = ({
 }) => (
   <input
     type="text"
+    // autoComplete="off"
     name={name}
     placeholder={placeholder}
     value={value}
     onChange={onChange}
-    className={`${className}, border-2 border-gray-300 bg-white py-3 px-5 w-full rounded-lg text-sm focus:outline-none mr-2`}
+    className={`${className}, border-2 border-gray-300 bg-white py-3 px-5 w-auto rounded-lg text-sm focus:outline-none mr-2`}
   />
 );
 
