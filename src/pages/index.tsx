@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 
-import { useEventListener, useHuddle01 } from "@huddle01/react";
-import { Audio, Video } from "@huddle01/react/components";
-
+import { useEventListener, useHuddle01 } from '@huddle01/react';
+import { useDisplayName } from '@huddle01/react/app-utils';
+import { Audio, Video } from '@huddle01/react/components';
 import {
   useAudio,
   useLobby,
@@ -10,12 +10,11 @@ import {
   usePeers,
   useRoom,
   useVideo,
-} from "@huddle01/react/hooks";
+} from '@huddle01/react/hooks';
 
-import { useDisplayName } from "@huddle01/react/app-utils";
+import Input from '@/components/Input';
 
-import Button from "../components/Button";
-import Input from "@/components/Input";
+import Button from '../components/Button';
 
 type THuddleState = {
   projectId: string;
@@ -27,10 +26,10 @@ type THuddleState = {
 const App = () => {
   // Local States
   const [huddleStates, setHuddleStates] = useState<THuddleState>({
-    projectId: "",
-    accessToken: "",
-    roomId: "",
-    userName: "guestUser",
+    projectId: '',
+    accessToken: '',
+    roomId: '',
+    userName: 'guestUser',
   });
 
   const { accessToken, userName, projectId, roomId } = huddleStates;
@@ -58,7 +57,7 @@ const App = () => {
   const { joinRoom, leaveRoom } = useRoom();
 
   // Event Listner
-  useEventListener("lobby:cam-on", () => {
+  useEventListener('lobby:cam-on', () => {
     if (camStream && videoRef.current) videoRef.current.srcObject = camStream;
   });
 
@@ -66,11 +65,11 @@ const App = () => {
 
   const { setDisplayName, error: displayNameError } = useDisplayName();
 
-  useEventListener("room:joined", () => {
-    console.log("room:joined");
+  useEventListener('room:joined', () => {
+    console.log('room:joined');
   });
-  useEventListener("lobby:joined", () => {
-    console.log("lobby:joined");
+  useEventListener('lobby:joined', () => {
+    console.log('lobby:joined');
   });
 
   // Func
@@ -78,6 +77,14 @@ const App = () => {
     const { name, value } = e.target;
     setHuddleStates({ ...huddleStates, [name]: value });
   };
+
+  const [selectedMicPeers, updateSelectedMicPeers] = useState<Set<String>>(
+    new Set()
+  );
+
+  const [selectedCamPeers, updateSelectedCamPeers] = useState<Set<String>>(
+    new Set()
+  );
 
   useEffect(() => {
     if (projectId) {
@@ -162,8 +169,8 @@ const App = () => {
           </Button>
 
           <Button
-            disabled={!state.matches("Initialized.JoinedLobby")}
-            onClick={() => send("LEAVE_LOBBY")}
+            disabled={!state.matches('Initialized.JoinedLobby')}
+            onClick={() => send('LEAVE_LOBBY')}
           >
             LEAVE_LOBBY
           </Button>
@@ -199,11 +206,16 @@ const App = () => {
           <div className="w-full">
             <div>Enable Produce</div>
             <div className="border border-black p-2 rounded-md h-fit">
-              {state.matches("Initialized.JoinedRoom.Mic.Unmuted") ? (
+              {state.matches('Initialized.JoinedRoom.Mic.Unmuted') ? (
                 <Button
                   disabled={!produceAudio.isCallable}
-                  style={{ marginRight: "1rem" }}
-                  onClick={() => produceAudio(micStream)}
+                  style={{ marginRight: '1rem' }}
+                  onClick={() =>
+                    produceAudio(
+                      micStream,
+                      Array.from(selectedMicPeers) as string[]
+                    )
+                  }
                 >
                   PRODUCE_MIC
                 </Button>
@@ -211,16 +223,21 @@ const App = () => {
                 <Button
                   disabled={!stopProducingAudio.isCallable}
                   onClick={() => stopProducingAudio()}
-                  style={{ marginRight: "1rem" }}
+                  style={{ marginRight: '1rem' }}
                 >
                   STOP_PRODUCING_MIC
                 </Button>
               )}
 
-              {state.matches("Initialized.JoinedRoom.Cam.On") ? (
+              {state.matches('Initialized.JoinedRoom.Cam.On') ? (
                 <Button
                   disabled={!produceVideo.isCallable}
-                  onClick={() => produceVideo(camStream)}
+                  onClick={() =>
+                    produceVideo(
+                      camStream,
+                      Array.from(selectedCamPeers) as string[]
+                    )
+                  }
                 >
                   PRODUCE_CAM
                 </Button>
@@ -232,7 +249,7 @@ const App = () => {
                   STOP_PRODUCING_CAM
                 </Button>
               )}
-              {peerIds.map((peerId) => {
+              {peerIds.map(peerId => {
                 const peer = peers[peerId];
 
                 return (
@@ -241,9 +258,14 @@ const App = () => {
                       <label>
                         <input
                           type="checkbox"
-                          value={`${peer.peerId} video`}
-                          onChange={() => {
-                            /* produce video */
+                          checked={selectedMicPeers.has(peer.peerId)}
+                          onClick={() => {
+                            if (selectedMicPeers.has(peer.peerId)) {
+                              selectedMicPeers.delete(peer.peerId);
+                            } else {
+                              selectedMicPeers.add(peer.peerId);
+                            }
+                            updateSelectedMicPeers(new Set(selectedMicPeers));
                           }}
                         />
                         Video
@@ -253,9 +275,14 @@ const App = () => {
                       <label>
                         <input
                           type="checkbox"
-                          value={`${peer.peerId} audio`}
-                          onChange={() => {
-                            /* produce audio */
+                          checked={selectedCamPeers.has(peer.peerId)}
+                          onClick={() => {
+                            if (selectedCamPeers.has(peer.peerId)) {
+                              selectedCamPeers.delete(peer.peerId);
+                            } else {
+                              selectedCamPeers.add(peer.peerId);
+                            }
+                            updateSelectedCamPeers(new Set(selectedCamPeers));
                           }}
                         />
                         Audio
@@ -274,8 +301,8 @@ const App = () => {
           <div className="flex">
             <div className="w-1/2">
               {Object.values(peers)
-                .filter((peer) => peer.cam)
-                .map((peer) => (
+                .filter(peer => peer.cam)
+                .map(peer => (
                   <div className="grid grid-cols-2 gap-2 mt-5 h-1/2">
                     role: {peer.displayName}
                     <Video
@@ -287,8 +314,8 @@ const App = () => {
                   </div>
                 ))}
               {Object.values(peers)
-                .filter((peer) => peer.mic)
-                .map((peer) => (
+                .filter(peer => peer.mic)
+                .map(peer => (
                   <Audio
                     key={peer.peerId}
                     peerId={peer.peerId}
@@ -297,7 +324,7 @@ const App = () => {
                 ))}
             </div>
             <div className="w-1/2">
-              {Object.values(peers).map((peer) => (
+              {Object.values(peers).map(peer => (
                 <div className="grid grid-cols-2 gap-2 mt-5 ml-5 h-1/2">
                   <label>
                     <input
