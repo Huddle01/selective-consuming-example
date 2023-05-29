@@ -4,7 +4,8 @@ const Button: React.FC<{
   children: React.ReactElement | string;
   onClick: () => void;
   disabled?: boolean;
-}> = ({ children, onClick, disabled }) => {
+  style?: React.CSSProperties;
+}> = ({ children, onClick, disabled, style }) => {
   return (
     <button
       onClick={onClick}
@@ -12,6 +13,7 @@ const Button: React.FC<{
         disabled ? "opacity-50" : ""
       }`}
       disabled={disabled}
+      style={style}
     >
       {children}
     </button>

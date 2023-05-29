@@ -30,7 +30,7 @@ const App = () => {
     projectId: "",
     accessToken: "",
     roomId: "",
-    userName: "",
+    userName: "guestUser",
   });
 
   const { accessToken, userName, projectId, roomId } = huddleStates;
@@ -184,34 +184,6 @@ const App = () => {
         <br />
         <h2 className="text-3xl text-green-600 font-extrabold">Room</h2>
         <div className="flex gap-4 flex-wrap">
-          <Button
-            disabled={!produceAudio.isCallable}
-            onClick={() => produceAudio(micStream)}
-          >
-            PRODUCE_MIC
-          </Button>
-
-          <Button
-            disabled={!produceVideo.isCallable}
-            onClick={() => produceVideo(camStream)}
-          >
-            PRODUCE_CAM
-          </Button>
-
-          <Button
-            disabled={!stopProducingAudio.isCallable}
-            onClick={() => stopProducingAudio()}
-          >
-            STOP_PRODUCING_MIC
-          </Button>
-
-          <Button
-            disabled={!stopProducingVideo.isCallable}
-            onClick={() => stopProducingVideo()}
-          >
-            STOP_PRODUCING_CAM
-          </Button>
-
           <Button disabled={!leaveRoom.isCallable} onClick={leaveRoom}>
             LEAVE_ROOM
           </Button>
@@ -227,6 +199,39 @@ const App = () => {
           <div className="w-full">
             <div>Enable Produce</div>
             <div className="border border-black p-2 rounded-md h-fit">
+              {state.matches("Initialized.JoinedRoom.Mic.Unmuted") ? (
+                <Button
+                  disabled={!produceAudio.isCallable}
+                  style={{ marginRight: "1rem" }}
+                  onClick={() => produceAudio(micStream)}
+                >
+                  PRODUCE_MIC
+                </Button>
+              ) : (
+                <Button
+                  disabled={!stopProducingAudio.isCallable}
+                  onClick={() => stopProducingAudio()}
+                  style={{ marginRight: "1rem" }}
+                >
+                  STOP_PRODUCING_MIC
+                </Button>
+              )}
+
+              {state.matches("Initialized.JoinedRoom.Cam.On") ? (
+                <Button
+                  disabled={!produceVideo.isCallable}
+                  onClick={() => produceVideo(camStream)}
+                >
+                  PRODUCE_CAM
+                </Button>
+              ) : (
+                <Button
+                  disabled={!stopProducingVideo.isCallable}
+                  onClick={() => stopProducingVideo()}
+                >
+                  STOP_PRODUCING_CAM
+                </Button>
+              )}
               {peerIds.map((peerId) => {
                 const peer = peers[peerId];
 
@@ -266,23 +271,39 @@ const App = () => {
 
         <div className="mt-4">
           <div>Peers:</div>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {Object.values(peers)
-              .filter((peer) => peer.cam)
-              .map((peer) => (
-                <>
-                  role: {peer.role}
-                  <Video
+          <div className="flex">
+            <div className="w-1/2">
+              {Object.values(peers)
+                .filter((peer) => peer.cam)
+                .map((peer) => (
+                  <div className="grid grid-cols-2 gap-2 mt-5 h-1/2">
+                    role: {peer.displayName}
+                    <Video
+                      key={peer.peerId}
+                      peerId={peer.peerId}
+                      track={peer.cam}
+                      debug
+                    />
+                  </div>
+                ))}
+              {Object.values(peers)
+                .filter((peer) => peer.mic)
+                .map((peer) => (
+                  <Audio
                     key={peer.peerId}
                     peerId={peer.peerId}
-                    track={peer.cam}
-                    debug
+                    track={peer.mic}
                   />
-                  <div>
+                ))}
+            </div>
+            <div className="w-1/2">
+              {Object.values(peers).map((peer) => (
+                <div className="grid grid-cols-2 gap-2 mt-5 ml-5 h-1/2">
                   <label>
                     <input
                       type="checkbox"
                       value={`${peer.peerId} video`}
+                      checked={peer.cam?.enabled}
                       className="mr-2"
                       onChange={() => {
                         /* consume video */
@@ -290,11 +311,12 @@ const App = () => {
                     />
                     Consume Video
                   </label>
-                  <br/>
+                  <br />
                   <label>
                     <input
                       type="checkbox"
                       value={`${peer.peerId} audio`}
+                      checked={peer.mic?.enabled}
                       className="mr-2"
                       onChange={() => {
                         /* consume audio */
@@ -302,18 +324,9 @@ const App = () => {
                     />
                     Consume Audio
                   </label>
-                  </div>
-                </>
+                </div>
               ))}
-            {Object.values(peers)
-              .filter((peer) => peer.mic)
-              .map((peer) => (
-                <Audio
-                  key={peer.peerId}
-                  peerId={peer.peerId}
-                  track={peer.mic}
-                />
-              ))}
+            </div>
           </div>
         </div>
       </div>
