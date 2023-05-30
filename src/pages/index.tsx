@@ -46,6 +46,8 @@ const App = () => {
     stopAudioStream,
     stopProducingAudio,
     stream: micStream,
+    createMicConsumer,
+    closeMicConsumer,
   } = useAudio();
   const {
     fetchVideoStream,
@@ -53,6 +55,8 @@ const App = () => {
     stopVideoStream,
     stopProducingVideo,
     stream: camStream,
+    createCamConsumer,
+    closeCamConsumer,
   } = useVideo();
   const { joinRoom, leaveRoom } = useRoom();
 
@@ -332,8 +336,12 @@ const App = () => {
                       value={`${peer.peerId} video`}
                       checked={peer.cam?.enabled}
                       className="mr-2"
-                      onChange={() => {
-                        /* consume video */
+                      onClick={() => {
+                        if (peer.cam?.enabled) {
+                          createCamConsumer(peer.peerId);
+                        } else {
+                          closeCamConsumer(peer.peerId);
+                        }
                       }}
                     />
                     Consume Video
@@ -345,8 +353,12 @@ const App = () => {
                       value={`${peer.peerId} audio`}
                       checked={peer.mic?.enabled}
                       className="mr-2"
-                      onChange={() => {
-                        /* consume audio */
+                      onClick={() => {
+                        if (peer.mic?.enabled) {
+                          createMicConsumer(peer.peerId);
+                        } else {
+                          closeMicConsumer(peer.peerId);
+                        }
                       }}
                     />
                     Consume Audio
