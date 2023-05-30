@@ -94,7 +94,7 @@ const App = () => {
     if (projectId) {
       initialize(projectId);
     }
-  }, [initialize, projectId]);
+  }, [projectId]);
 
   return (
     <div className="grid grid-cols-2 min-h-screen p-4">
@@ -292,7 +292,7 @@ const App = () => {
                         Audio
                       </label>
                     </span>
-                    <span>{peer.role}</span>
+                    <span>{peer.peerId}</span>
                   </div>
                 );
               })}
@@ -338,9 +338,9 @@ const App = () => {
                       className="mr-2"
                       onClick={() => {
                         if (peer.cam?.enabled) {
-                          createCamConsumer(peer.peerId);
-                        } else {
                           closeCamConsumer(peer.peerId);
+                        } else {
+                          createCamConsumer(peer.peerId);
                         }
                       }}
                     />
@@ -355,9 +355,9 @@ const App = () => {
                       className="mr-2"
                       onClick={() => {
                         if (peer.mic?.enabled) {
-                          createMicConsumer(peer.peerId);
-                        } else {
                           closeMicConsumer(peer.peerId);
+                        } else {
+                          createMicConsumer(peer.peerId);
                         }
                       }}
                     />
