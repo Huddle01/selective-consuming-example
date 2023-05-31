@@ -209,7 +209,7 @@ const App = () => {
           </div>
           <div className="w-full">
             <div>Enable Produce</div>
-            <div className="border border-black p-2 rounded-md h-fit">
+            <div className="border border-white p-2 rounded-md h-fit">
               {state.matches('Initialized.JoinedRoom.Mic.Unmuted') ? (
                 <Button
                   disabled={!produceAudio.isCallable}
