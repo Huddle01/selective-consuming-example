@@ -21,6 +21,7 @@ import {
 import { useRouter } from 'next/router';
 
 import Input from '@/components/Input';
+import Peers from '@/components/Peers';
 
 type THuddleState = {
   projectId: string;
@@ -33,10 +34,6 @@ const index = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const [senderAddress, setSenderAddress] = useState<string>('');
-  const [hostAddress, setHostAddress] = useState<string>('');
-  const [rate, setRate] = useState<string>('');
-
   const { state, send } = useMeetingMachine();
 
   const { initialize, isInitialized } = useHuddle01();
@@ -48,8 +45,6 @@ const index = () => {
     stopAudioStream,
     stopProducingAudio,
     stream: micStream,
-    createMicConsumer,
-    closeMicConsumer,
   } = useAudio();
   const {
     fetchVideoStream,
@@ -58,12 +53,10 @@ const index = () => {
     stopVideoStream,
     stopProducingVideo,
     stream: camStream,
-    createCamConsumer,
-    closeCamConsumer,
   } = useVideo();
   const { joinRoom, leaveRoom, isRoomJoined } = useRoom();
 
-  const { peers } = usePeers();
+  const { peers, peerIds } = usePeers();
 
   const [huddleStates, setHuddleStates] = useState<THuddleState>({
     projectId: '',
@@ -135,9 +128,57 @@ const index = () => {
       ) : (
         <></>
       )}
-      <Center>
+      <Center className='mt-4'>
         <video ref={videoRef} autoPlay muted width={'30%'}></video>
         <audio ref={audioRef} autoPlay></audio>
+        {isRoomJoined ? (<div className="ml-12">
+          <div>Enable Produce</div>
+          <div className="border border-white p-2 rounded-md h-fit">
+            {peerIds.map(peerId => {
+              const peer = peers[peerId];
+
+              return (
+                <div key={peer.peerId} className="flex items-center gap-4">
+                  <span>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selectedMicPeers.has(peer.peerId)}
+                        onClick={() => {
+                          if (selectedMicPeers.has(peer.peerId)) {
+                            selectedMicPeers.delete(peer.peerId);
+                          } else {
+                            selectedMicPeers.add(peer.peerId);
+                          }
+                          updateSelectedMicPeers(new Set(selectedMicPeers));
+                        }}
+                      />
+                      Video
+                    </label>
+                  </span>
+                  <span>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selectedCamPeers.has(peer.peerId)}
+                        onClick={() => {
+                          if (selectedCamPeers.has(peer.peerId)) {
+                            selectedCamPeers.delete(peer.peerId);
+                          } else {
+                            selectedCamPeers.add(peer.peerId);
+                          }
+                          updateSelectedCamPeers(new Set(selectedCamPeers));
+                        }}
+                      />
+                      Audio
+                    </label>
+                  </span>
+                  <span>{peer.peerId}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>) : (<></>)}
       </Center>
       <Center>
         <Button
@@ -206,7 +247,10 @@ const index = () => {
           onClick={() => {
             state.matches('Initialized.JoinedRoom.Cam.ProducingCam')
               ? stopProducingVideo()
-              : produceVideo(camStream);
+              : produceVideo(
+                  camStream,
+                  Array.from(selectedCamPeers) as string[]
+                );
           }}
           hidden={!isRoomJoined}
         >
@@ -220,7 +264,12 @@ const index = () => {
         <Button
           margin={2}
           onClick={() => {
-            isAudioProducing ? stopProducingAudio() : produceAudio(micStream);
+            isAudioProducing
+              ? stopProducingAudio()
+              : produceAudio(
+                  micStream,
+                  Array.from(selectedMicPeers) as string[]
+                );
           }}
           hidden={!isRoomJoined}
         >
@@ -232,79 +281,7 @@ const index = () => {
         </Button>
       </Center>
       <div>
-        <div>
-          <div className="flex">
-            <div className="w-1/4">
-              {Object.values(peers)
-                .filter(peer => peer.cam)
-                .map(peer => (
-                  <div>
-                    <Video
-                      key={peer.peerId}
-                      peerId={peer.peerId}
-                      track={peer.cam}
-                    />
-                  </div>
-                ))}
-              {Object.values(peers)
-                .filter(peer => peer.mic)
-                .map(peer => (
-                  <div>
-                    <Audio
-                      key={peer.peerId}
-                      peerId={peer.peerId}
-                      track={peer.mic}
-                    />
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex">
-          {Object.values(peers).map(peer => (
-            <div className="grid grid-cols-4 gap-2 mt-5 ml-5">
-              {peer.cam?.enabled ? (
-                <Button
-                  mr={2}
-                  onClick={() => {
-                    closeCamConsumer(peer.peerId);
-                  }}
-                >
-                  <Icon as={BiCameraOff} />
-                </Button>
-              ) : (
-                <Button
-                  mr={2}
-                  onClick={() => {
-                    createCamConsumer(peer.peerId);
-                  }}
-                >
-                  <Icon as={BiCamera} />
-                </Button>
-              )}
-              {peer.mic?.enabled ? (
-                <Button
-                  mr={2}
-                  onClick={() => {
-                    closeMicConsumer(peer.peerId);
-                  }}
-                >
-                  <Icon as={BiMicrophoneOff} />
-                </Button>
-              ) : (
-                <Button
-                  mr={2}
-                  onClick={() => {
-                    createMicConsumer(peer.peerId);
-                  }}
-                >
-                  <Icon as={BiMicrophone} />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
+        <Peers />
       </div>
     </>
   );
