@@ -1,8 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  BiCamera,
+  BiCameraOff,
+  BiMicrophone,
+  BiMicrophoneOff,
+  BiPhoneOff,
+} from 'react-icons/bi';
 
+import { Button, Center, Icon } from '@chakra-ui/react';
 import { useEventListener, useHuddle01 } from '@huddle01/react';
 import { useDisplayName } from '@huddle01/react/app-utils';
-import { Audio, Video } from '@huddle01/react/components';
 import {
   useAudio,
   useLobby,
@@ -13,8 +20,7 @@ import {
 } from '@huddle01/react/hooks';
 
 import Input from '@/components/Input';
-
-import Button from '../components/Button';
+import Peers from '@/components/Peers';
 
 type THuddleState = {
   projectId: string;
@@ -23,64 +29,44 @@ type THuddleState = {
   userName: string;
 };
 
-const App = () => {
-  // Local States
-  const [huddleStates, setHuddleStates] = useState<THuddleState>({
-    projectId: '',
-    accessToken: '',
-    roomId: '',
-    userName: 'guestUser',
-  });
-
-  const { accessToken, userName, projectId, roomId } = huddleStates;
-  // refs
+const index = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  const { state, send } = useMeetingMachine();
+  const { state } = useMeetingMachine();
 
   const { initialize } = useHuddle01();
-  const { joinLobby } = useLobby();
+  const { joinLobby, isLobbyJoined, leaveLobby } = useLobby();
   const {
     fetchAudioStream,
     produceAudio,
+    isProducing: isAudioProducing,
     stopAudioStream,
     stopProducingAudio,
     stream: micStream,
-    createMicConsumer,
-    closeMicConsumer,
   } = useAudio();
   const {
     fetchVideoStream,
     produceVideo,
+    isProducing: isVideoProducing,
     stopVideoStream,
     stopProducingVideo,
     stream: camStream,
-    createCamConsumer,
-    closeCamConsumer,
   } = useVideo();
-  const { joinRoom, leaveRoom } = useRoom();
-
-  // Event Listner
-  useEventListener('lobby:cam-on', () => {
-    if (camStream && videoRef.current) videoRef.current.srcObject = camStream;
-  });
+  const { joinRoom, leaveRoom, isRoomJoined } = useRoom();
 
   const { peers, peerIds } = usePeers();
 
+  const [huddleStates, setHuddleStates] = useState<THuddleState>({
+    projectId: '',
+    accessToken: '',
+    roomId: '',
+    userName: '',
+  });
+
   const { setDisplayName, error: displayNameError } = useDisplayName();
 
-  useEventListener('room:joined', () => {
-    console.log('room:joined');
-  });
-  useEventListener('lobby:joined', () => {
-    console.log('lobby:joined');
-  });
-
-  // Func
-  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setHuddleStates({ ...huddleStates, [name]: value });
-  };
+  const { accessToken, userName, projectId, roomId } = huddleStates;
 
   const [selectedMicPeers, updateSelectedMicPeers] = useState<Set<String>>(
     new Set()
@@ -90,29 +76,53 @@ const App = () => {
     new Set()
   );
 
+  useEventListener('lobby:cam-on', () => {
+    if (state.context.camStream && videoRef.current)
+      videoRef.current.srcObject = state.context.camStream as MediaStream;
+  });
+
+  useEventListener('lobby:mic-on', () => {
+    if (state.context.micStream && audioRef.current)
+      audioRef.current.srcObject = state.context.micStream as MediaStream;
+  });
+
   useEffect(() => {
-    if (projectId) {
+    if (state.matches('Idle') && projectId) {
       initialize(projectId);
     }
   }, [projectId]);
 
+  /*  This will automatically fetch audio and video stream when user joins the lobby because 
+      it's compulsory for user to fetch audio and video for producing audio and video in room */
+  useEffect(() => {
+    if (isLobbyJoined) {
+      fetchVideoStream();
+      fetchAudioStream();
+    }
+  }, [isLobbyJoined]);
+
+  useEffect(() => {
+    if (isRoomJoined) {
+      setDisplayName(userName);
+    }
+  }, [isRoomJoined]);
+
+  const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setHuddleStates({ ...huddleStates, [name]: value });
+  };
+
   return (
-    <div className="grid grid-cols-2 min-h-screen p-4">
-      <div className="">
-        <h1 className="text-6xl font-bold">Lumos Example App</h1>
-
-        <Input
-          name="projectId"
-          placeholder="Your Project Id"
-          value={projectId}
-          onChange={handleOnChange}
-        />
-
-        <br />
-
-        <h2 className="text-3xl text-red-500 font-extrabold">Initialized</h2>
-        <div className="flex flex-col w-1/2 gap-2">
-          <div className="flex items-center">
+    <>
+      {!isLobbyJoined && !isRoomJoined ? (
+        <Center mt={5}>
+          <div className="grid grid-cols-3 w-1/2 gap-2">
+            <Input
+              name="projectId"
+              placeholder="Your Project Id"
+              value={projectId}
+              onChange={handleOnChange}
+            />
             <Input
               name="roomId"
               value={roomId}
@@ -126,170 +136,68 @@ const App = () => {
               onChange={handleOnChange}
             />
           </div>
-          <Button
-            disabled={!joinLobby.isCallable}
-            onClick={() => {
-              if (accessToken) joinLobby(roomId, accessToken);
-              else joinLobby(roomId);
-            }}
-          >
-            JOIN_LOBBY
-          </Button>
-        </div>
-        <br />
-
-        <h2 className="text-3xl text-yellow-500 font-extrabold">Lobby</h2>
-        <div className="flex gap-4 flex-wrap">
-          <Input
-            name="userName"
-            value={userName}
-            onChange={handleOnChange}
-            placeholder="Your Display Name"
-          />
-          <Button
-            disabled={!setDisplayName.isCallable}
-            onClick={() => {
-              setDisplayName(userName);
-            }}
-          >
-            {`SET_DISPLAY_NAME error: ${displayNameError}`}
-          </Button>
-          <Button
-            disabled={!fetchVideoStream.isCallable}
-            onClick={fetchVideoStream}
-          >
-            FETCH_VIDEO_STREAM
-          </Button>
-
-          <Button
-            disabled={!fetchAudioStream.isCallable}
-            onClick={fetchAudioStream}
-          >
-            FETCH_AUDIO_STREAM
-          </Button>
-
-          <Button disabled={!joinRoom.isCallable} onClick={joinRoom}>
-            JOIN_ROOM
-          </Button>
-
-          <Button
-            disabled={!state.matches('Initialized.JoinedLobby')}
-            onClick={() => send('LEAVE_LOBBY')}
-          >
-            LEAVE_LOBBY
-          </Button>
-
-          <Button
-            disabled={!stopVideoStream.isCallable}
-            onClick={stopVideoStream}
-          >
-            STOP_VIDEO_STREAM
-          </Button>
-          <Button
-            disabled={!stopAudioStream.isCallable}
-            onClick={stopAudioStream}
-          >
-            STOP_AUDIO_STREAM
-          </Button>
-        </div>
-        <br />
-        <h2 className="text-3xl text-green-600 font-extrabold">Room</h2>
-        <div className="flex gap-4 flex-wrap">
-          <Button disabled={!leaveRoom.isCallable} onClick={leaveRoom}>
-            LEAVE_ROOM
-          </Button>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex gap-2">
-          <div>
-            Me Video:
-            <video ref={videoRef} muted autoPlay />
-          </div>
-          <div className="w-full">
-            <div>Enable Produce</div>
+        </Center>
+      ) : (
+        <></>
+      )}
+      <Center className="mt-4">
+        <video ref={videoRef} autoPlay muted width={'30%'}></video>
+        <audio ref={audioRef} autoPlay></audio>
+        {/* <ProduceCheckbox isRoomJoined={isRoomJoined} peerIds={peerIds} peers={peers} /> */}
+        {isRoomJoined ? (
+          <div className="ml-12">
+            <div>Produce stream for peers</div>
             <div className="border border-white p-2 rounded-md h-fit">
-              {state.matches('Initialized.JoinedRoom.Mic.Unmuted') ? (
-                <Button
-                  disabled={!produceAudio.isCallable}
-                  style={{ marginRight: '1rem' }}
-                  onClick={() =>
-                    produceAudio(
-                      micStream,
-                      Array.from(selectedMicPeers) as string[]
-                    )
-                  }
-                >
-                  PRODUCE_MIC
-                </Button>
-              ) : (
-                <Button
-                  disabled={!stopProducingAudio.isCallable}
-                  onClick={() => stopProducingAudio()}
-                  style={{ marginRight: '1rem' }}
-                >
-                  STOP_PRODUCING_MIC
-                </Button>
-              )}
-
-              {state.matches('Initialized.JoinedRoom.Cam.On') ? (
-                <Button
-                  disabled={!produceVideo.isCallable}
-                  onClick={() =>
-                    produceVideo(
-                      camStream,
-                      Array.from(selectedCamPeers) as string[]
-                    )
-                  }
-                >
-                  PRODUCE_CAM
-                </Button>
-              ) : (
-                <Button
-                  disabled={!stopProducingVideo.isCallable}
-                  onClick={() => stopProducingVideo()}
-                >
-                  STOP_PRODUCING_CAM
-                </Button>
-              )}
               {peerIds.map(peerId => {
                 const peer = peers[peerId];
-
                 return (
                   <div key={peer.peerId} className="flex items-center gap-4">
                     <span>
-                      <label>
+                      <label
+                        style={{ background: isAudioProducing ? 'gray' : '' }}
+                      >
                         <input
                           type="checkbox"
                           checked={selectedMicPeers.has(peer.peerId)}
                           onClick={() => {
-                            if (selectedMicPeers.has(peer.peerId)) {
-                              selectedMicPeers.delete(peer.peerId);
+                            /* User first have to click on checkbox and then click on Produce Audio to make selective producing working */
+                            if (isAudioProducing) {
+                              alert('Please stop producing audio first to make selective producing working');
                             } else {
-                              selectedMicPeers.add(peer.peerId);
+                              if (selectedMicPeers.has(peer.peerId)) {
+                                selectedMicPeers.delete(peer.peerId);
+                              } else {
+                                selectedMicPeers.add(peer.peerId);
+                              }
+                              updateSelectedMicPeers(new Set(selectedMicPeers));
                             }
-                            updateSelectedMicPeers(new Set(selectedMicPeers));
                           }}
                         />
-                        Video
+                        Audio
                       </label>
                     </span>
                     <span>
-                      <label>
+                      <label
+                        style={{ background: isVideoProducing ? 'gray' : '' }}
+                      >
                         <input
                           type="checkbox"
                           checked={selectedCamPeers.has(peer.peerId)}
                           onClick={() => {
-                            if (selectedCamPeers.has(peer.peerId)) {
-                              selectedCamPeers.delete(peer.peerId);
+                            /* User first have to click on checkbox and then click on Produce Video to make selective producing working */
+                            if (isVideoProducing) {
+                              alert('Please stop producing video first to make selective producing working');
                             } else {
-                              selectedCamPeers.add(peer.peerId);
+                              if (selectedCamPeers.has(peer.peerId)) {
+                                selectedCamPeers.delete(peer.peerId);
+                              } else {
+                                selectedCamPeers.add(peer.peerId);
+                              }
+                              updateSelectedCamPeers(new Set(selectedCamPeers));
                             }
-                            updateSelectedCamPeers(new Set(selectedCamPeers));
                           }}
                         />
-                        Audio
+                        Video
                       </label>
                     </span>
                     <span>{peer.peerId}</span>
@@ -298,79 +206,140 @@ const App = () => {
               })}
             </div>
           </div>
-        </div>
+        ) : (
+          <></>
+        )}
+      </Center>
+      <Center mt={2}>
+        <Button
+          margin={2}
+          onClick={async () => {
+            if (isLobbyJoined) {
+              joinRoom();
+            } else {
+              if (accessToken) joinLobby(roomId, accessToken);
+              else joinLobby(roomId);
+            }
+          }}
+          hidden={isRoomJoined}
+        >
+          {isLobbyJoined ? 'Join Room' : 'Join Lobby'}
+        </Button>
 
-        <div className="mt-4">
-          <div>Peers:</div>
-          <div className="flex">
-            <div className="w-1/2">
-              {Object.values(peers)
-                .filter(peer => peer.cam)
-                .map(peer => (
-                  <div className="grid grid-cols-2 gap-2 mt-5 h-1/2">
-                    role: {peer.displayName}
-                    <Video
-                      key={peer.peerId}
-                      peerId={peer.peerId}
-                      track={peer.cam}
-                      debug
-                    />
-                  </div>
-                ))}
-              {Object.values(peers)
-                .filter(peer => peer.mic)
-                .map(peer => (
-                  <Audio
-                    key={peer.peerId}
-                    peerId={peer.peerId}
-                    track={peer.mic}
-                  />
-                ))}
-            </div>
-            <div className="w-1/2">
-              {Object.values(peers).map(peer => (
-                <div className="grid grid-cols-2 gap-2 mt-5 ml-5 h-1/2">
-                  <label>
-                    <input
-                      type="checkbox"
-                      value={`${peer.peerId} video`}
-                      checked={peer.cam?.enabled}
-                      className="mr-2"
-                      onClick={() => {
-                        if (peer.cam?.enabled) {
-                          closeCamConsumer(peer.peerId);
-                        } else {
-                          createCamConsumer(peer.peerId);
-                        }
-                      }}
-                    />
-                    Consume Video
-                  </label>
-                  <br />
-                  <label>
-                    <input
-                      type="checkbox"
-                      value={`${peer.peerId} audio`}
-                      checked={peer.mic?.enabled}
-                      className="mr-2"
-                      onClick={() => {
-                        if (peer.mic?.enabled) {
-                          closeMicConsumer(peer.peerId);
-                        } else {
-                          createMicConsumer(peer.peerId);
-                        }
-                      }}
-                    />
-                    Consume Audio
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Button
+          margin={2}
+          border={1}
+          background={
+            state.matches('Initialized.JoinedLobby.Cam.On')
+              ? 'gray.700'
+              : 'red.600'
+          }
+          onClick={() => {
+            state.matches('Initialized.JoinedLobby.Cam.On')
+              ? stopVideoStream()
+              : fetchVideoStream();
+          }}
+          hidden={!isLobbyJoined}
+        >
+          {state.matches('Initialized.JoinedLobby.Cam.On') ? (
+            <Icon as={BiCamera} />
+          ) : (
+            <Icon as={BiCameraOff} />
+          )}
+        </Button>
+
+        <Button
+          margin={2}
+          background={
+            state.matches('Initialized.JoinedLobby.Mic.Unmuted')
+              ? 'gray.700'
+              : 'red.600'
+          }
+          onClick={() => {
+            state.matches('Initialized.JoinedLobby.Mic.Unmuted')
+              ? stopAudioStream()
+              : fetchAudioStream();
+          }}
+          hidden={!isLobbyJoined}
+        >
+          {state.matches('Initialized.JoinedLobby.Mic.Unmuted') ? (
+            <Icon as={BiMicrophone} />
+          ) : (
+            <Icon as={BiMicrophoneOff} />
+          )}
+        </Button>
+
+        <Button
+          margin={2}
+          background={'red.600'}
+          onClick={async () => {
+            if (isRoomJoined) {
+              leaveRoom();
+            } else {
+              leaveLobby();
+            }
+          }}
+          hidden={!isLobbyJoined && !isRoomJoined}
+        >
+          <Icon as={BiPhoneOff} />
+        </Button>
+
+        <Button
+          margin={2}
+          background={isVideoProducing ? 'gray.700' : 'red.600'}
+          onClick={() => {
+            isVideoProducing
+              ? stopProducingVideo()
+              : produceVideo(
+                  camStream,
+                  Array.from(selectedCamPeers) as string[]
+                );
+          }}
+          hidden={!isRoomJoined}
+        >
+          {isVideoProducing ? (
+            <Icon as={BiCamera} />
+          ) : (
+            <Icon as={BiCameraOff} />
+          )}
+        </Button>
+
+        <Button
+          margin={2}
+          background={isAudioProducing ? 'gray.700' : 'red.600'}
+          onClick={() => {
+            isAudioProducing
+              ? stopProducingAudio()
+              : produceAudio(
+                  micStream,
+                  Array.from(selectedMicPeers) as string[]
+                );
+          }}
+          hidden={!isRoomJoined}
+        >
+          {isAudioProducing ? (
+            <Icon as={BiMicrophone} />
+          ) : (
+            <Icon as={BiMicrophoneOff} />
+          )}
+        </Button>
+        <br />
+        {isLobbyJoined && !isRoomJoined ? (
+          <Input
+            name="userName"
+            placeholder="Your Display Name"
+            value={userName}
+            onChange={handleOnChange}
+          />
+        ) : (
+          <></>
+        )}
+      </Center>
+      <div>
+        <Peers />
       </div>
-    </div>
+    </>
   );
 };
 
-export default App;
+export default index;
