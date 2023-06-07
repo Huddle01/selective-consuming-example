@@ -29,7 +29,7 @@ type THuddleState = {
   userName: string;
 };
 
-const index = () => {
+const Home = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -342,4 +342,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default Home;

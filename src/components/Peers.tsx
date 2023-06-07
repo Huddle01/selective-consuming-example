@@ -46,7 +46,7 @@ export default function Peers() {
 
       <Center className="grid grid-cols-4 gap-4 mt-5 items-center justify-center">
         {Object.values(peers).map(peer => (
-          <div className="w-80 flex items-center justify-center">
+          <div key={peer.peerId} className="w-80 flex items-center justify-center">
             {peer.cam?.enabled ? (
               <Button
                 mr={2}
