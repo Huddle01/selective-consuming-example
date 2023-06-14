@@ -1,38 +1,24 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Selective consuming and producing 
+This repository contains an example of using Huddle01 for selectively produce and consume which you can use it for your metaverse. Selectively produce means you can select to which peers you want to produce your stream and selectively consume means you can select from which peers you want to consume streams. 
 
-## Getting Started
+### Installation
+1. Clone the repository using `git clone https://github.com/Huddle01/selective-consuming-example`
+2. Change the directory using `cd selective-consuming-example`
+3. Run `pnpm i`, `yarn install` or `npm install` to install all packages. 
+4. Once, all packages are install start the server using `pnpm dev`, `yarn dev` or `npm run dev`. 
 
-First, run the development server:
+### Using example app
+1. Generate `projectId` from [docs](https://huddle01.com/docs/api-keys) by connecting your wallet. Also, copy the `API_KEY` to generate `roomId`. 
+2. Use any API testing platform such as Postman, Thunderclient or even you can use cURL to generate roomId. To generate `roomId` refer [here](https://huddle01.com/docs/apis/types/create-room)
+3. Once, you generate `projectId` and have `roomId` you can use that to join lobby. 
+4. After joining lobby, allow permissions for cam/mic and click on join room. 
+5. Repeat these same steps by opening same URL in other two tabs (for testing purpose). Make sure that you join using same `roomId`. 
+6. Now, go to first tab click on checkbox for audio/video of any peer and click on mic/cam icon to start producing. 
+7. If you go to that peer (by opening respective tab) you can see that peer will starts consuming the audio/video. This happened because we have selectively produce for that peer. 
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+### Demo
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+https://github.com/Huddle01/selective-consuming-example/assets/43074241/f6ea498f-6f36-4604-9d4b-8ba6dfc0c0a8
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+**To know more about selective consuming and producing you can refer to detailed docs from [here](https://huddle01.com/docs/sdk/usecase/metaverse).**
